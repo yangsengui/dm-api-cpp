@@ -19,12 +19,11 @@ target_link_libraries(your_target PRIVATE dm::api_cpp)
 
 `dm_api_cpp` links `OpenSSL::Crypto` as an interface dependency.
 
-## API Groups
+## Integration Flow (Launcher Profile)
 
-- Runtime and launcher lifecycle (`DM_*`)
-- Activation configuration and activation flow (`Set*`, `Activate*`)
-- Validation/status and info (`IsLicense*`, `Get*`)
-- Version/update APIs (`DM_GetVersion`, `DM_CheckForUpdates`, `DM_DownloadUpdate`)
+- Startup guard: `restartAppIfNecessary`.
+- Signed verify/activate flow: `verify`, `activate`, `verifyAndActivate`.
+- Update APIs: `checkForUpdates`, `downloadUpdate`, `getUpdateState`, `waitForUpdateStateChange`, `quitAndInstall`.
 
 ## Note
 
