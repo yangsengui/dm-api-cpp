@@ -1,6 +1,3 @@
 @PACKAGE_INIT@
 
-include(CMakeFindDependencyMacro)
-find_dependency(OpenSSL REQUIRED)
-
 include("${CMAKE_CURRENT_LIST_DIR}/dm_api_cppTargets.cmake")

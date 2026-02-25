@@ -17,15 +17,42 @@ find_package(dm_api_cpp REQUIRED)
 target_link_libraries(your_target PRIVATE dm::api_cpp)
 ```
 
-`dm_api_cpp` links `OpenSSL::Crypto` as an interface dependency.
+## Integration Flow
 
-## Integration Flow (Launcher Profile)
+This SDK follows the same LexActivator-style flow as Python SDK:
 
-- Startup guard: `restartAppIfNecessary`.
-- Signed verify/activate flow: `verify`, `activate`, `verifyAndActivate`.
-- Update APIs: `checkForUpdates`, `downloadUpdate`, `getUpdateState`, `waitForUpdateStateChange`, `quitAndInstall`.
+1. `setProductData()` and `setProductId()`.
+2. `setLicenseKey()` and `activateLicense()`.
+3. `isLicenseGenuine()` or `isLicenseValid()` on every startup.
+4. Optional version/update APIs: `getVersion()`, `getLibraryVersion()`, `checkForUpdates()`.
+
+## Quick Start
+
+```cpp
+#include "dm_api.hpp"
+
+int main() {
+    dm::Api api;
+    api.setProductData("<product_data>");
+    api.setProductId("your-product-id", 0);
+    api.setLicenseKey("XXXX-XXXX-XXXX");
+
+    if (!api.activateLicense()) {
+        throw std::runtime_error(api.getLastError());
+    }
+
+    if (!api.isLicenseGenuine()) {
+        throw std::runtime_error(api.getLastError());
+    }
+
+    return 0;
+}
+```
+
+## Dev License Skip Check
+
+Use `dm::Api::shouldSkipCheck(appId, publicKey)` for local dev-license validation when needed.
 
 ## Note
 
-`dm_api.hpp` currently contains `{{PUBKEY}}` placeholder for signature verification.
-Replace it with your real PEM public key before production release.
+No `{{PUBKEY}}` placeholder replacement is required.

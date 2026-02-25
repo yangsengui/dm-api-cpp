@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(dm_api_cpp VERSION 1.1.0 LANGUAGES CXX)
-
-find_package(OpenSSL REQUIRED)
+project(dm_api_cpp VERSION 1.2.0 LANGUAGES CXX)
 
 add_library(dm_api_cpp INTERFACE)
 add_library(dm::api_cpp ALIAS dm_api_cpp)
@@ -11,8 +9,6 @@ target_include_directories(dm_api_cpp
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>
 )
-
-target_link_libraries(dm_api_cpp INTERFACE OpenSSL::Crypto)
 
 target_compile_features(dm_api_cpp INTERFACE cxx_std_17)
 
