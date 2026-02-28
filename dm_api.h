@@ -187,12 +187,36 @@ char *DM_CheckForUpdate(const char *options_json);
 char *DM_DownloadUpdate(const char *options_json);
 
 /**
+ * Cancel update download task
+ *
+ * Sends request to launcher and returns raw JSON response.
+ * Caller must free the returned string with DM_FreeString.
+ */
+char *DM_CancelUpdateDownload(const char *options_json);
+
+/**
  * Get current update state
  *
  * Returns raw JSON response from launcher.
  * Caller must free the returned string with DM_FreeString.
  */
 char *DM_GetUpdateState(void);
+
+/**
+ * Get post-update information
+ *
+ * Returns raw JSON response from launcher.
+ * Caller must free the returned string with DM_FreeString.
+ */
+char *DM_GetPostUpdateInfo(void);
+
+/**
+ * Acknowledge post-update information
+ *
+ * Returns raw JSON response from launcher.
+ * Caller must free the returned string with DM_FreeString.
+ */
+char *DM_AckPostUpdateInfo(const char *options_json);
 
 /**
  * Wait for update state changes

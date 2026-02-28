@@ -395,10 +395,10 @@ public:
         const std::string& appId = "",
         const std::string& publicKey = "")
     {
-        const char* dmPipe = std::getenv("DM_PIPE");
-        const char* dmApiPath = std::getenv("DM_API_PATH");
-        if (dmPipe != nullptr && dmPipe[0] != '\0' &&
-            dmApiPath != nullptr && dmApiPath[0] != '\0') {
+        const char* launcherEndpoint = std::getenv("DM_LAUNCHER_ENDPOINT");
+        const char* launcherToken = std::getenv("DM_LAUNCHER_TOKEN");
+        if (launcherEndpoint != nullptr && launcherEndpoint[0] != '\0' &&
+            launcherToken != nullptr && launcherToken[0] != '\0') {
             return false;
         }
 
@@ -463,8 +463,8 @@ public:
         return ::SetProductData(productData.c_str()) == 0;
     }
 
-    bool setProductId(const std::string& productId, uint32_t flags = 0) const {
-        return ::SetProductId(productId.c_str(), flags) == 0;
+    bool setProductId(const std::string& productId) const {
+        return ::SetProductId(productId.c_str(), 0) == 0;
     }
 
     bool setDataDirectory(const std::string& directoryPath) const {
@@ -481,6 +481,10 @@ public:
 
     bool setLicenseKey(const std::string& licenseKey) const {
         return ::SetLicenseKey(licenseKey.c_str()) == 0;
+    }
+
+    bool setLicenseCallback(CallbackType callback) const {
+        return ::SetLicenseCallback(callback) == 0;
     }
 
     bool setActivationMetadata(const std::string& key, const std::string& value) const {
@@ -501,6 +505,23 @@ public:
 
     std::optional<uint32_t> getLastActivationError() const {
         return callU32Out(::GetLastActivationError);
+    }
+
+    std::string getActivationErrorName(uint32_t code) const {
+        switch (code) {
+            case 0: return "DM_ERR_OK";
+            case 1: return "DM_ERR_FAIL";
+            case 2: return "DM_ERR_INVALID_PARAMETER";
+            case 3: return "DM_ERR_APPID_NOT_SET";
+            case 4: return "DM_ERR_LICENSE_KEY_NOT_SET";
+            case 5: return "DM_ERR_NOT_ACTIVATED";
+            case 6: return "DM_ERR_LICENSE_EXPIRED";
+            case 7: return "DM_ERR_NETWORK";
+            case 8: return "DM_ERR_FILE_IO";
+            case 9: return "DM_ERR_SIGNATURE";
+            case 10: return "DM_ERR_BUFFER_TOO_SMALL";
+            default: return "UNKNOWN(" + std::to_string(code) + ")";
+        }
     }
 
     bool isLicenseGenuine() const {
@@ -582,9 +603,27 @@ public:
         });
     }
 
+    std::optional<JsonValue> cancelUpdateDownload(const std::string& optionsJson = "{}") const {
+        return callPipeJson([&]() {
+            return ::DM_CancelUpdateDownload(optionsJson.c_str());
+        });
+    }
+
     std::optional<JsonValue> getUpdateState() const {
         return callPipeJson([&]() {
             return ::DM_GetUpdateState();
+        });
+    }
+
+    std::optional<JsonValue> getPostUpdateInfo() const {
+        return callPipeJson([&]() {
+            return ::DM_GetPostUpdateInfo();
+        });
+    }
+
+    std::optional<JsonValue> ackPostUpdateInfo(const std::string& optionsJson = "{}") const {
+        return callPipeJson([&]() {
+            return ::DM_AckPostUpdateInfo(optionsJson.c_str());
         });
     }
 
@@ -594,10 +633,8 @@ public:
         });
     }
 
-    bool quitAndInstall(const std::string& optionsJson = "{}") const {
-        return callPipeAccepted([&]() {
-            return ::DM_QuitAndInstall(optionsJson.c_str());
-        });
+    int32_t quitAndInstall(const std::string& optionsJson = "{}") const {
+        return ::DM_QuitAndInstall(optionsJson.c_str());
     }
 
     bool connect(const std::string& pipeName, uint32_t timeoutMs = 0) const {
@@ -705,27 +742,8 @@ private:
         return pipeTimeout_ == 0 ? DM_DEFAULT_TIMEOUT_MS : pipeTimeout_;
     }
 
-    bool connectPipe() const {
-        const std::string pipe = trim(readEnv("DM_PIPE"));
-        if (pipe.empty()) {
-            return false;
-        }
-
-        return ::DM_Connect(pipe.c_str(), resolvePipeTimeout()) == 0;
-    }
-
     template <typename Fn>
     std::optional<JsonValue> callPipeJson(Fn&& fn) const {
-        if (!connectPipe()) {
-            return std::nullopt;
-        }
-
-        struct CloseGuard {
-            ~CloseGuard() {
-                ::DM_Close();
-            }
-        } closeGuard;
-
         char* ptr = fn();
         if (ptr == nullptr) {
             return std::nullopt;
@@ -733,26 +751,11 @@ private:
 
         const std::string response = ptrToOwnedString(ptr);
         auto envelope = JsonParser::parse(response);
-        if (!envelope || !envelope->isObject() || !envelope->contains("data")) {
+        if (!envelope || !envelope->isObject()) {
             return std::nullopt;
         }
 
-        return (*envelope)["data"];
-    }
-
-    template <typename Fn>
-    bool callPipeAccepted(Fn&& fn) const {
-        if (!connectPipe()) {
-            return false;
-        }
-
-        struct CloseGuard {
-            ~CloseGuard() {
-                ::DM_Close();
-            }
-        } closeGuard;
-
-        return fn() == 1;
+        return *envelope;
     }
 };
 

@@ -1,6 +1,6 @@
 # dm-api-cpp
 
-Header-only C++ wrapper for DistroMate `dm_api` with CMake export support.
+Header-only C++ wrapper for DistroMate `dm_api` native library with CMake export support.
 
 ## Build And Install
 
@@ -17,24 +17,15 @@ find_package(dm_api_cpp REQUIRED)
 target_link_libraries(your_target PRIVATE dm::api_cpp)
 ```
 
-## Integration Flow
-
-This SDK follows the same LexActivator-style flow as Python SDK:
-
-1. `setProductData()` and `setProductId()`.
-2. `setLicenseKey()` and `activateLicense()`.
-3. `isLicenseGenuine()` or `isLicenseValid()` on every startup.
-4. Optional version/update APIs: `getVersion()`, `getLibraryVersion()`, `checkForUpdates()`.
-
-## Quick Start
+## Quick Start (License)
 
 ```cpp
 #include "dm_api.hpp"
 
 int main() {
     dm::Api api;
-    api.setProductData("<product_data>");
-    api.setProductId("your-product-id", 0);
+    api.setProductData("<product-data>");
+    api.setProductId("your-product-id");
     api.setLicenseKey("XXXX-XXXX-XXXX");
 
     if (!api.activateLicense()) {
@@ -42,12 +33,29 @@ int main() {
     }
 
     if (!api.isLicenseGenuine()) {
-        throw std::runtime_error(api.getLastError());
+        auto code = api.getLastActivationError();
+        std::string name = code.has_value() ? api.getActivationErrorName(*code) : "UNKNOWN";
+        throw std::runtime_error("license check failed: " + name + ", err=" + api.getLastError());
     }
 
     return 0;
 }
 ```
+
+## API Groups
+
+- License setup: `setProductData`, `setProductId`, `setDataDirectory`, `setDebugMode`, `setCustomDeviceFingerprint`
+- License activation: `setLicenseKey`, `setLicenseCallback`, `activateLicense`, `getLastActivationError`
+- License state: `isLicenseGenuine`, `isLicenseValid`, `getServerSyncGracePeriodExpiryDate`, `getActivationMode`
+- License details: `getLicenseKey`, `getLicenseExpiryDate`, `getLicenseCreationDate`, `getLicenseActivationDate`, `getActivationCreationDate`, `getActivationLastSyncedDate`, `getActivationId`
+- Update: `checkForUpdates`, `downloadUpdate`, `cancelUpdateDownload`, `getUpdateState`, `getPostUpdateInfo`, `ackPostUpdateInfo`, `waitForUpdateStateChange`, `quitAndInstall`
+- General: `getLibraryVersion`, `jsonToCanonical`, `getLastError`, `reset`
+
+## Update API Notes
+
+- Update APIs return parsed JSON envelope (`dm::JsonValue`) when transport succeeds.
+- If native API returns `NULL`, C++ SDK returns `std::nullopt`; check `getLastError()`.
+- `quitAndInstall()` returns native `int` status code directly.
 
 ## Dev License Skip Check
 
